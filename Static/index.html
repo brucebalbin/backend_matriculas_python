@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSys - Panel Principal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root { --primary-blue: #0d6efd; --dark-blue: #0a4275; --light-blue: #e9f2ff; }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--dark-blue), var(--primary-blue)); }
+        .login-card { background: #fff; padding: 2.5rem; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 400px; }
+        .navbar-custom { background: linear-gradient(135deg, var(--dark-blue), var(--primary-blue)); }
+        .nav-pills .nav-link { color: rgba(255, 255, 255, 0.8); border-radius: 8px; margin: 0 4px; transition: 0.3s; cursor: pointer; }
+        .nav-pills .nav-link:hover { color: #fff; background-color: rgba(255,255,255,0.1); }
+        .nav-pills .nav-link.active { background-color: #ffffff; color: var(--dark-blue); font-weight: 600; }
+        .card-custom { border: none; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.06); background: #fff; }
+        .table-custom thead { background-color: var(--light-blue); color: var(--dark-blue); }
+        .btn-primary-custom { background-color: var(--primary-blue); border: none; border-radius: 8px; padding: 8px 20px; color: white;}
+        .btn-primary-custom:hover { background-color: var(--dark-blue); color: white; }
+    </style>
+    <!-- Librerías para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- LOGIN -->
+    <div id="loginSection" class="login-container">
+        <div class="login-card text-center">
+            <i class="bi bi-mortarboard-fill text-primary" style="font-size: 3rem;"></i>
+            <h3 class="fw-bold text-dark mt-2 mb-4">EduSys</h3>
+            <form id="formLogin">
+                <div class="form-floating mb-3 text-start"><input type="text" class="form-control" id="txtUsername" placeholder="Usuario/DNI" required><label for="txtUsername">Usuario (DNI para alumnos)</label></div>
+                <div class="form-floating mb-4 text-start"><input type="password" class="form-control" id="txtPassword" placeholder="Contraseña" required><label for="txtPassword">Contraseña</label></div>
+                <button type="submit" class="btn btn-primary-custom w-100 py-2 fw-bold fs-5">Ingresar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboardSection" class="d-none flex-column flex-grow-1">
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4 py-3">
+            <a class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2" href="#"><i class="bi bi-mortarboard-fill"></i> EduSys</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="nav nav-pills mx-auto" id="mainTabs" role="tablist">
+                    <!-- Pestañas Administrativas -->
+                    <li class="nav-item" id="li-alumnos" role="presentation"><button class="nav-link" id="tab-alumnos" data-bs-toggle="tab" data-bs-target="#alumnos-pane" onclick="cargarAlumnos()"><i class="bi bi-people"></i> Alumnos</button></li>
+                    <li class="nav-item" id="li-profesores" role="presentation"><button class="nav-link" id="tab-profesores" data-bs-toggle="tab" data-bs-target="#profesores-pane" onclick="cargarProfesores()"><i class="bi bi-person-video3"></i> Profesores</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-cursos" data-bs-toggle="tab" data-bs-target="#cursos-pane" onclick="cargarCursos()"><i class="bi bi-journal-bookmark"></i> Cursos</button></li>
+                    <li class="nav-item" id="li-matricular" role="presentation"><button class="nav-link" id="tab-matricular" data-bs-toggle="tab" data-bs-target="#matricula-pane" onclick="cargarCombosMatricula()"><i class="bi bi-pencil-square"></i> Matricular</button></li>
+                    <li class="nav-item" id="li-reportes" role="presentation"><button class="nav-link" id="tab-reportes" data-bs-toggle="tab" data-bs-target="#reporte-pane" onclick="cargarReporteMatriculas()"><i class="bi bi-bar-chart-line"></i> Reportes</button></li>
+                    <!-- NUEVA PESTAÑA: AUDITORÍA -->
+                    <li class="nav-item" id="li-auditoria" role="presentation"><button class="nav-link" id="tab-auditoria" data-bs-toggle="tab" data-bs-target="#auditoria-pane" onclick="cargarAuditoria()"><i class="bi bi-shield-lock"></i> Auditoría (Triggers)</button></li>
+                    <!-- Pestaña Exclusiva para Alumnos -->
+                    <li class="nav-item" id="li-mis-cursos" role="presentation"><button class="nav-link" id="tab-mis-cursos" data-bs-toggle="tab" data-bs-target="#mis-cursos-pane" onclick="cargarMisCursos()"><i class="bi bi-journal-check"></i> Mis Cursos</button></li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-white fw-medium" id="lblUsuario"></span>
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="cerrarSesion()">Salir</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container my-5 flex-grow-1">
+            <div class="tab-content" id="mainTabsContent">
+                
+                <!-- TAB ALUMNOS -->
+                <div class="tab-pane fade" id="alumnos-pane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div><h3 class="fw-bold">Alumnos</h3></div>
+                        <button class="btn btn-primary-custom" onclick="abrirModalAlumno()">Nuevo Alumno</button>
+                    </div>
+                    <div class="card card-custom p-3"><table class="table table-hover table-custom align-middle mb-0">
+                        <thead><tr><th>Nombre</th><th>DNI</th><th>Correo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead><tbody id="tablaEstudiantes"></tbody>
+                    </table></div>
+                </div>
+
+                <!-- TAB PROFESORES -->
+                <div class="tab-pane fade" id="profesores-pane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div><h3 class="fw-bold">Profesores</h3></div>
+                        <button class="btn btn-primary-custom" id="btn-nuevo-profesor" onclick="abrirModalProfesor()">Nuevo Profesor</button>
+                    </div>
+                    <div class="card card-custom p-3"><table class="table table-hover table-custom align-middle mb-0">
+                        <thead><tr><th>Nombre</th><th>DNI</th><th>Especialidad</th><th>Correo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead><tbody id="tablaProfesores"></tbody>
+                    </table></div>
+                </div>
+
+                <!-- TAB CURSOS -->
+                <div class="tab-pane fade" id="cursos-pane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div><h3 class="fw-bold">Cursos Disponibles</h3></div>
+                        <button class="btn btn-primary-custom" id="btn-nuevo-curso" onclick="abrirModalCurso()">Nuevo Curso</button>
+                    </div>
+                    <div class="row" id="gridCursos"></div>
+                </div>
+
+                <!-- TAB MATRÍCULA -->
+                <div class="tab-pane fade" id="matricula-pane" role="tabpanel">
+                    <div class="row justify-content-center"><div class="col-lg-7"><div class="card card-custom p-4">
+                        <h4 class="fw-bold text-center mb-4">Procesar Matrícula</h4>
+                        <form id="formMatricula">
+                            <div class="mb-3"><label class="form-label">Estudiante:</label><select id="cboAlumno" class="form-select bg-light" required></select></div>
+                            <div class="mb-3"><label class="form-label">Curso:</label><select id="cboCurso" class="form-select bg-light" onchange="actualizarPrecioCurso()" required></select></div>
+                            <div class="row mb-4">
+                                <div class="col-md-6"><label class="form-label">Pago:</label><select id="cboMetodoPago" class="form-select bg-light"><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option></select></div>
+                                <div class="col-md-6"><label class="form-label">Monto (S/):</label><input type="number" id="txtMonto" class="form-control bg-light" readonly required></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary-custom w-100 fw-bold">Matricular</button>
+                        </form>
+                    </div></div></div>
+                </div>
+
+                <!-- TAB REPORTES -->
+                <div class="tab-pane fade" id="reporte-pane" role="tabpanel">
+                    <h3 class="fw-bold mb-4">Monitor de Transacciones</h3>
+                    <div class="card card-custom p-3"><table class="table table-hover table-custom align-middle mb-0">
+                        <thead><tr><th>Ticket</th><th>Estudiante</th><th>Curso</th><th>Monto</th><th>Estado</th></tr></thead><tbody id="tablaResumen"></tbody>
+                    </table></div>
+                </div>
+
+                <!-- TAB MIS CURSOS (SOLO ALUMNOS) -->
+                <div class="tab-pane fade" id="mis-cursos-pane" role="tabpanel">
+                    <div class="mb-4">
+                        <h3 class="fw-bold">Mis Cursos Matriculados</h3>
+                        <p class="text-muted small">Historial de tus inscripciones en el sistema</p>
+                    </div>
+                    <div class="card card-custom p-3">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-custom align-middle mb-0">
+                                <thead><tr><th># Ticket</th><th>Curso</th><th>Docente</th><th>Fecha</th><th>Inversión</th><th>Estado</th></tr></thead>
+                                <tbody id="tablaMisCursos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- TAB AUDITORÍA (SOLO ADMIN) -->
+                <div class="tab-pane fade" id="auditoria-pane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h3 class="fw-bold text-dark mb-0">Auditoría del Sistema</h3>
+                            <p class="text-muted small">Monitor automático de eventos en la BD (Triggers)</p>
+                        </div>
+                        <button class="btn btn-danger shadow-sm fw-bold" onclick="descargarPDF()">
+                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF
+                        </button>
+                    </div>
+                    <div class="card card-custom p-3">
+                        <div class="table-responsive">
+                            <!-- Le ponemos el ID 'tablaAuditoriaExportar' para que jsPDF sepa qué tabla imprimir -->
+                            <table class="table table-hover table-custom align-middle mb-0" id="tablaAuditoriaExportar">
+                                <thead>
+                                    <tr>
+                                        <th># Aud.</th>
+                                        <th># Matrícula</th>
+                                        <th>Acción</th>
+                                        <th>Usuario BD</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Detalle Anterior / Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaAuditoria"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<!-- MODAL ESTUDIANTE -->
+    <div class="modal fade" id="alumnoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-3">
+        <h5 class="fw-bold mb-3">Nuevo Estudiante</h5>
+        <form id="alumnoForm">
+            <input type="hidden" id="idAlumno"> <!-- NUEVO -->
+            <input type="text" id="dni" class="form-control mb-2" placeholder="DNI" required>
+            <input type="text" id="nombres" class="form-control mb-2" placeholder="Nombres" required>
+            <input type="text" id="apellidos" class="form-control mb-2" placeholder="Apellidos" required>
+            
+            <!-- Campo de correo agregado y con el atributo 'required' -->
+            <input type="email" id="correo" class="form-control mb-3" placeholder="Correo Electrónico" required>
+            
+            <button type="submit" class="btn btn-primary w-100">Guardar</button>
+        </form>
+    </div></div></div>
+
+    <!-- MODAL PROFESOR -->
+    <div class="modal fade" id="profesorModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-3">
+        <h5 class="fw-bold mb-3">Nuevo Profesor</h5>
+        <form id="profesorForm">
+            <input type="hidden" id="idProfesor"> <!-- NUEVO -->
+            <input type="text" id="p_dni" class="form-control mb-2" placeholder="DNI" required maxlength="12">
+            <input type="text" id="p_nombres" class="form-control mb-2" placeholder="Nombres" required>
+            <input type="text" id="p_apellidos" class="form-control mb-2" placeholder="Apellidos" required>
+            <input type="text" id="p_especialidad" class="form-control mb-2" placeholder="Especialidad">
+            <input type="email" id="p_correo" class="form-control mb-3" placeholder="Correo Electrónico">
+            <button type="submit" class="btn btn-primary w-100">Guardar Profesor</button>
+        </form>
+    </div></div></div>
+
+    <!-- MODAL CURSO -->
+    <div class="modal fade" id="cursoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content p-3">
+        <h5 class="fw-bold mb-3">Nuevo Curso</h5>
+        <form id="cursoForm">
+            <input type="hidden" id="idCurso"> <!-- NUEVO -->
+            <input type="text" id="c_nombre" class="form-control mb-2" placeholder="Nombre del Curso" required>
+            <input type="number" id="c_precio" class="form-control mb-2" placeholder="Precio (S/)" step="0.01" required>
+            <input type="number" id="c_vacantes" class="form-control mb-2" placeholder="Total de Vacantes" required>
+            <label class="form-label small text-muted mb-1">Docente Asignado:</label>
+            <select id="c_docente" class="form-select mb-3" required></select>
+            <button type="submit" class="btn btn-primary w-100">Guardar Curso</button>
+        </form>
+    </div></div></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API = '/api';
+    let modalAlumno, modalProfesor, modalCurso, cursosData = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        modalAlumno = new bootstrap.Modal(document.getElementById('alumnoModal'));
+        modalProfesor = new bootstrap.Modal(document.getElementById('profesorModal'));
+        modalCurso = new bootstrap.Modal(document.getElementById('cursoModal'));
+        verificarSesion();
+    });
+
+    // 1. AUTENTICACIÓN Y CONTROL DE ROLES
+    document.getElementById('formLogin').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const payload = { username: document.getElementById('txtUsername').value, password: document.getElementById('txtPassword').value };
+        fetch(`${API}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(async res => {
+            if (res.ok) {
+                const data = await res.json();
+                localStorage.setItem('sesionActiva', 'true'); 
+                localStorage.setItem('usuarioRol', data.rol); 
+                localStorage.setItem('usuarioDNI', data.username); // Guardamos el DNI
+                localStorage.setItem('usuarioNombre', data.nombre_mostrar); // Guardamos "Primer Nombre Primer Apellido"
+                verificarSesion();
+            } else { const data = await res.json(); alert(data.detail); }
+        });
+    });
+
+    function verificarSesion() {
+        if (localStorage.getItem('sesionActiva') === 'true') {
+            const rol = localStorage.getItem('usuarioRol');
+            document.getElementById('loginSection').classList.add('d-none');
+            document.getElementById('dashboardSection').classList.remove('d-none');
+            document.getElementById('dashboardSection').classList.add('d-flex');
+            
+            // Pone el nombre real en la barra de arriba ("Hola, Juan Pérez")
+            document.getElementById('lblUsuario').innerHTML = `<i class="bi bi-person-circle"></i> Hola, ${localStorage.getItem('usuarioNombre')} (${rol})`;
+
+            if (rol === 'ALUMNO') {
+                // Ocultar opciones de admin
+                document.getElementById('li-alumnos').classList.add('d-none');
+                document.getElementById('li-profesores').classList.add('d-none');
+                document.getElementById('li-reportes').classList.add('d-none');
+                document.getElementById('btn-nuevo-curso').classList.add('d-none');
+                document.getElementById('li-auditoria').classList.add('d-none'); // Ocultar al alumno
+                
+                // HABILITAMOS "Matricular" y "Mis Cursos" para el alumno
+                document.getElementById('li-matricular').classList.remove('d-none');
+                document.getElementById('li-mis-cursos').classList.remove('d-none');
+                document.getElementById('tab-mis-cursos').click(); 
+            } else {
+                // Mostrar todo para Admin
+                document.getElementById('li-alumnos').classList.remove('d-none');
+                document.getElementById('li-profesores').classList.remove('d-none');
+                document.getElementById('li-reportes').classList.remove('d-none');
+                document.getElementById('li-matricular').classList.remove('d-none');
+                document.getElementById('btn-nuevo-curso').classList.remove('d-none');
+                
+                document.getElementById('li-mis-cursos').classList.add('d-none');
+                document.getElementById('tab-alumnos').click();
+                document.getElementById('li-auditoria').classList.remove('d-none'); // Mostrar al Admin
+            }
+        } else {
+            document.getElementById('loginSection').classList.remove('d-none');
+            document.getElementById('dashboardSection').classList.add('d-none');
+            document.getElementById('dashboardSection').classList.remove('d-flex');
+        }
+    }
+
+    function cerrarSesion() { localStorage.clear(); document.getElementById('formLogin').reset(); verificarSesion(); }
+
+    // 2. MATRÍCULAS (Configurada para que el alumno solo se matricule a sí mismo)
+    function cargarCombosMatricula() { 
+        const rol = localStorage.getItem('usuarioRol');
+        const miDNI = localStorage.getItem('usuarioDNI');
+
+        fetch(`${API}/alumnos`).then(r => r.json()).then(a => { 
+            const combo = document.getElementById('cboAlumno');
+            if (rol === 'ALUMNO') {
+                // Filtramos para que solo aparezca él mismo y bloqueamos el selector
+                const yo = a.find(x => x.dni === miDNI);
+                if (yo) {
+                    combo.innerHTML = `<option value="${yo.id_alumno}">${yo.nombres} ${yo.apellidos}</option>`;
+                }
+                combo.setAttribute('disabled', 'true');
+            } else {
+                // El admin puede matricular a todos
+                combo.innerHTML = a.filter(x => x.estado === 'A').map(x => `<option value="${x.id_alumno}">${x.nombres} ${x.apellidos}</option>`).join('');
+                combo.removeAttribute('disabled');
+            }
+        }); 
+        
+        fetch(`${API}/cursos`).then(r => r.json()).then(c => { 
+            cursosData = c; 
+            document.getElementById('cboCurso').innerHTML = c.filter(x => x.estado === 'A' && x.vacantes > 0).map(x => `<option value="${x.id_curso}">${x.nombre_curso} (Libres: ${x.vacantes})</option>`).join(''); 
+            actualizarPrecioCurso(); 
+        }); 
+    }
+    
+    function actualizarPrecioCurso() { const id = document.getElementById('cboCurso').value; const curso = cursosData.find(c => c.id_curso == id); if (curso) document.getElementById('txtMonto').value = curso.precio; }
+    
+    document.getElementById('formMatricula').addEventListener('submit', function(e) { 
+        e.preventDefault(); 
+        const p = { 
+            id_alumno: parseInt(document.getElementById('cboAlumno').value), 
+            id_curso: parseInt(document.getElementById('cboCurso').value), 
+            monto_inicial: parseFloat(document.getElementById('txtMonto').value), 
+            metodo_pago: document.getElementById('cboMetodoPago').value 
+        }; 
+        fetch(`${API}/matriculas/registrar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) })
+        .then(async res => { const d = await res.json(); alert(d.mensaje || d.detail); if(res.ok) cargarCombosMatricula(); }); 
+    });
+
+    // 3. MIS CURSOS (Alumnos)
+    function cargarMisCursos() {
+        const username = localStorage.getItem('usuarioDNI');
+        fetch(`${API}/matriculas/mis-cursos/${username}`)
+            .then(r => r.json())
+            .then(resumen => {
+                if (resumen.length === 0) { document.getElementById('tablaMisCursos').innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Aún no te has matriculado en ningún curso.</td></tr>'; return; }
+                document.getElementById('tablaMisCursos').innerHTML = resumen.map(r => `<tr><td class="fw-bold text-secondary">#${r.id_matricula.toString().padStart(4, '0')}</td><td class="text-primary fw-medium">${r.nombre_curso}</td><td class="text-secondary"><i class="bi bi-person-video3 me-1"></i>${r.docente || 'Sin Asignar'}</td><td class="text-secondary">${r.fecha_matricula.substring(0,10)}</td><td class="fw-bold text-success">S/ ${r.monto_pagado}</td><td class="text-center"><span class="badge text-bg-info text-white rounded-pill px-3">${r.estado}</span></td></tr>`).join('');
+            });
+    }
+
+    // 4. MANTENIMIENTO DEL RESTO DEL CÓDIGO (Igual)
+    function cargarProfesores() { 
+    fetch(`${API}/profesores`).then(r => r.json()).then(profesores => { 
+        document.getElementById('tablaProfesores').innerHTML = profesores.map(p => `
+            <tr>
+                <td>${p.nombres} ${p.apellidos}</td>
+                <td>${p.dni}</td>
+                <td>${p.especialidad || 'General'}</td>
+                <td>${p.correo || '-'}</td>
+                <td>
+                    <span class="badge ${p.estado === 'A' ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill px-3 py-1">
+                        ${p.estado === 'A' ? 'ACTIVO' : 'INACTIVO'}
+                    </span>
+                </td>
+            </tr>`).join(''); 
+    }); 
+    }
+    
+    // =====================================
+    // MÓDULO PROFESORES
+    // =====================================
+    function cargarProfesores() { 
+        fetch(`${API}/profesores`).then(r => r.json()).then(profesores => { 
+            document.getElementById('tablaProfesores').innerHTML = profesores.map(p => `
+                <tr>
+                    <td>${p.nombres} ${p.apellidos}</td><td>${p.dni}</td><td>${p.especialidad || '-'}</td><td>${p.correo || '-'}</td>
+                    <td><span class="badge ${p.estado === 'A' ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill px-3 py-1">${p.estado === 'A' ? 'ACTIVO' : 'INACTIVO'}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-light text-warning shadow-sm" onclick='editarProfesor(${JSON.stringify(p)})'><i class="bi bi-pencil-fill"></i></button>
+                        <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarProfesor(${p.id_profesor})"><i class="bi bi-trash-fill"></i></button>
+                    </td>
+                </tr>`).join(''); 
+        }); 
+    }
+    
+    function abrirModalProfesor() { document.getElementById('profesorForm').reset(); document.getElementById('idProfesor').value = ''; modalProfesor.show(); }
+    
+    function editarProfesor(prof) {
+        document.getElementById('idProfesor').value = prof.id_profesor;
+        document.getElementById('p_dni').value = prof.dni;
+        document.getElementById('p_nombres').value = prof.nombres;
+        document.getElementById('p_apellidos').value = prof.apellidos;
+        document.getElementById('p_especialidad').value = prof.especialidad || '';
+        document.getElementById('p_correo').value = prof.correo || '';
+        modalProfesor.show();
+    }
+
+    function eliminarProfesor(id) {
+        if(confirm("¿Estás seguro de eliminar este profesor?")) {
+            fetch(`${API}/profesores/${id}`, { method: 'DELETE' }).then(async res => {
+                if(res.ok) cargarProfesores(); else { const d = await res.json(); alert(d.detail); }
+            });
+        }
+    }
+
+    document.getElementById('profesorForm').addEventListener('submit', function(e) { 
+        e.preventDefault(); 
+        const id = document.getElementById('idProfesor').value;
+        const payload = { dni: document.getElementById('p_dni').value, nombres: document.getElementById('p_nombres').value, apellidos: document.getElementById('p_apellidos').value, especialidad: document.getElementById('p_especialidad').value, correo: document.getElementById('p_correo').value }; 
+        
+        const url = id ? `${API}/profesores/${id}` : `${API}/profesores`;
+        const metodo = id ? 'PUT' : 'POST';
+
+        fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(async res => { 
+            if(res.ok){ modalProfesor.hide(); cargarProfesores(); } else { const d = await res.json(); alert(d.detail); }
+        }); 
+    });
+
+    // =====================================
+    // MÓDULO CURSOS
+    // =====================================
+    function cargarCursos() { 
+        // Solo mostramos botones de edición si el rol es ADMIN
+        const esAdmin = localStorage.getItem('usuarioRol') === 'ADMIN';
+
+        fetch(`${API}/cursos`).then(r => r.json()).then(cursos => { 
+            document.getElementById('gridCursos').innerHTML = cursos.map(c => `
+                <div class="col-md-4 mb-4">
+                    <div class="card card-custom h-100 p-3 border-top border-4 border-primary">
+                        <h5 class="fw-bold">${c.nombre_curso}</h5>
+                        <p class="mb-1 small">Inversión: <b>S/ ${c.precio}</b></p>
+                        <p class="mb-0 small">Vacantes: <b>${c.vacantes} libres</b></p>
+                        ${esAdmin ? `
+                        <div class="mt-3 pt-2 border-top d-flex justify-content-end gap-2">
+                            <button class="btn btn-sm btn-light text-warning shadow-sm" onclick='editarCurso(${JSON.stringify(c)})'><i class="bi bi-pencil-fill"></i></button>
+                            <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarCurso(${c.id_curso})"><i class="bi bi-trash-fill"></i></button>
+                        </div>` : ''}
+                    </div>
+                </div>`).join(''); 
+        }); 
+    }
+    
+    function abrirModalCurso() { 
+        document.getElementById('cursoForm').reset(); 
+        document.getElementById('idCurso').value = '';
+        fetch(`${API}/profesores`).then(r => r.json()).then(p => { 
+            document.getElementById('c_docente').innerHTML = p.filter(x => x.estado === 'A').map(x => `<option value="${x.id_profesor}">${x.nombres} ${x.apellidos}</option>`).join(''); 
+        }); 
+        modalCurso.show(); 
+    }
+    
+    function editarCurso(curso) {
+        document.getElementById('idCurso').value = curso.id_curso;
+        document.getElementById('c_nombre').value = curso.nombre_curso;
+        document.getElementById('c_precio').value = curso.precio;
+        document.getElementById('c_vacantes').value = curso.vacantes;
+        
+        fetch(`${API}/profesores`).then(r => r.json()).then(p => { 
+            document.getElementById('c_docente').innerHTML = p.filter(x => x.estado === 'A').map(x => `<option value="${x.id_profesor}" ${x.id_profesor === curso.id_profesor ? 'selected' : ''}>${x.nombres} ${x.apellidos}</option>`).join(''); 
+            modalCurso.show();
+        });
+    }
+
+    function eliminarCurso(id) {
+        if(confirm("¿Estás seguro de eliminar este curso?")) {
+            fetch(`${API}/cursos/${id}`, { method: 'DELETE' }).then(async res => {
+                if(res.ok) cargarCursos(); else { const d = await res.json(); alert(d.detail); }
+            });
+        }
+    }
+
+    document.getElementById('cursoForm').addEventListener('submit', function(e) { 
+        e.preventDefault(); 
+        const id = document.getElementById('idCurso').value;
+        const payload = { nombre_curso: document.getElementById('c_nombre').value, precio: parseFloat(document.getElementById('c_precio').value), vacantes: parseInt(document.getElementById('c_vacantes').value), id_profesor: parseInt(document.getElementById('c_docente').value) }; 
+        
+        const url = id ? `${API}/cursos/${id}` : `${API}/cursos`;
+        const metodo = id ? 'PUT' : 'POST';
+
+        fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(async res => { 
+            if(res.ok){ modalCurso.hide(); cargarCursos(); } else { const d = await res.json(); alert(d.detail); }
+        }); 
+    });
+
+    // =====================================
+    // MÓDULO ALUMNOS
+    // =====================================
+    function cargarAlumnos() { 
+        fetch(`${API}/alumnos`).then(r => r.json()).then(a => { 
+            document.getElementById('tablaEstudiantes').innerHTML = a.map(x => `
+                <tr>
+                    <td>${x.nombres} ${x.apellidos}</td><td>${x.dni}</td><td>${x.correo}</td>
+                    <td><span class="badge ${x.estado === 'A' ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill px-3 py-1">${x.estado === 'A' ? 'ACTIVO' : 'INACTIVO'}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-light text-warning shadow-sm" onclick='editarAlumno(${JSON.stringify(x)})'><i class="bi bi-pencil-fill"></i></button>
+                        <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarAlumno(${x.id_alumno})"><i class="bi bi-trash-fill"></i></button>
+                    </td>
+                </tr>`).join(''); 
+        }); 
+    }
+    
+    function abrirModalAlumno() { document.getElementById('alumnoForm').reset(); document.getElementById('idAlumno').value = ''; modalAlumno.show(); }
+    
+    function editarAlumno(alumno) {
+        document.getElementById('idAlumno').value = alumno.id_alumno;
+        document.getElementById('dni').value = alumno.dni;
+        document.getElementById('nombres').value = alumno.nombres;
+        document.getElementById('apellidos').value = alumno.apellidos;
+        document.getElementById('correo').value = alumno.correo;
+        modalAlumno.show();
+    }
+
+    function eliminarAlumno(id) {
+        if(confirm("¿Estás seguro de eliminar este alumno?")) {
+            fetch(`${API}/alumnos/${id}`, { method: 'DELETE' }).then(async res => {
+                if(res.ok) cargarAlumnos(); else { const d = await res.json(); alert(d.detail); }
+            });
+        }
+    }
+
+    document.getElementById('alumnoForm').addEventListener('submit', function(e) { 
+        e.preventDefault(); 
+        const id = document.getElementById('idAlumno').value;
+        const payload = { dni: document.getElementById('dni').value, nombres: document.getElementById('nombres').value, apellidos: document.getElementById('apellidos').value, correo: document.getElementById('correo').value }; 
+        
+        const url = id ? `${API}/alumnos/${id}` : `${API}/alumnos`;
+        const metodo = id ? 'PUT' : 'POST';
+
+        fetch(url, { method: metodo, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+        .then(async res => { 
+            if(res.ok){ modalAlumno.hide(); cargarAlumnos(); } else { const d = await res.json(); alert(d.detail); }
+        }); 
+    });
+
+    function cargarReporteMatriculas() { fetch(`${API}/matriculas/resumen`).then(r => r.json()).then(r => { document.getElementById('tablaResumen').innerHTML = r.map(x => `<tr><td>#${x.id_matricula}</td><td>${x.nombre_completo_alumno}</td><td>${x.nombre_curso}</td><td>S/ ${x.monto_pagado}</td><td>${x.estado}</td></tr>`).join(''); }); }
+
+    // ==========================================
+    // MÓDULO AUDITORÍA Y EXPORTACIÓN A PDF
+    // ==========================================
+        function cargarAuditoria() {
+            fetch(`${API}/auditoria`)
+                .then(r => r.json())
+                .then(datos => {
+                    if (datos.length === 0) { 
+                        document.getElementById('tablaAuditoria').innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No hay registros de auditoría aún.</td></tr>'; 
+                        return; 
+                    }
+                    document.getElementById('tablaAuditoria').innerHTML = datos.map(a => {
+                        // Cambiamos el color según la acción (INSERT=Verde, UPDATE=Amarillo, DELETE=Rojo)
+                        let colorAccion = a.accion === 'INSERT' ? 'success' : (a.accion === 'UPDATE' ? 'warning' : 'danger');
+                        return `
+                        <tr>
+                            <td class="fw-bold text-secondary">#${a.id_auditoria}</td>
+                            <td class="fw-medium">#${a.id_matricula}</td>
+                            <td><span class="badge text-bg-${colorAccion} rounded-pill px-3">${a.accion}</span></td>
+                            <td class="text-secondary"><i class="bi bi-database me-1"></i>${a.usuario_bd}</td>
+                            <td class="text-secondary small">${a.fecha}</td>
+                            <td class="small text-muted">${a.detalle_anterior || '-'}</td>
+                        </tr>
+                    `}).join('');
+                });
+        }
+
+        function descargarPDF() {
+            // Inicializamos jsPDF en formato 'landscape' (horizontal) para que quepan todas las columnas
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+
+            // Diseñamos el encabezado del PDF
+            doc.setFontSize(18);
+            doc.setTextColor(10, 66, 117); // Color Dark Blue del proyecto
+            doc.text("Bitácora de Auditoría de Matrículas (Triggers)", 14, 20);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            const fechaImpresion = new Date().toLocaleString();
+            doc.text(`Reporte generado el: ${fechaImpresion}  |  Usuario: ${localStorage.getItem('usuarioNombre')}`, 14, 28);
+
+            // Magia de AutoTable: Captura la tabla de HTML y la dibuja en el PDF
+            doc.autoTable({
+                html: '#tablaAuditoriaExportar',
+                startY: 35,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 3 },
+                headStyles: { fillColor: [13, 110, 253] } // Color Primary Blue
+            });
+
+            // Forzamos la descarga del archivo en el navegador
+            doc.save("Auditoria_EduSys.pdf");
+        }
+</script>
+</body>
+</html>
