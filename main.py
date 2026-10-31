@@ -17,6 +17,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Exponer la carpeta estática para la página web HTML
+app.mount("/web", StaticFiles(directory="static", html=True), name="static")
+
 # ==========================================
 # CONEXIÓN A LA BASE DE DATOS
 # ==========================================
