@@ -31,8 +31,8 @@ def get_db_connection():
         # Conexión usando wallet y las credenciales de Oracle Cloud
         connection = oracledb.connect(
             user="ADMIN",
-            password="TuContraseñaSeguraDeOracle",
-            dsn="edusysdb_high", # Verifica que este nombre coincida con tu tnsnames.ora
+            password="Contraseñ@1234",
+            dsn="bdmatriculas_high", # Verifica que este nombre coincida con tu tnsnames.ora
             config_dir=wallet_dir,
             wallet_location=wallet_dir,
             wallet_password="ContraseñaDelWallet"
