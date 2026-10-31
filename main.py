@@ -35,7 +35,7 @@ def get_db_connection():
             dsn="bdmatriculas_high", # Verifica que este nombre coincida con tu tnsnames.ora
             config_dir=wallet_dir,
             wallet_location=wallet_dir,
-            wallet_password="ContraseñaDelWallet"
+            wallet_password="B@lb1N2005"
         )
         return connection
     except Exception as e:
