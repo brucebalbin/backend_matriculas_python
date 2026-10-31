@@ -1,10 +1,43 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import os
 import oracledb
 from database import get_db_connection
 from schemas import MatriculaRequest, AlumnoRequest, LoginRequest, ProfesorRequest, CursoRequest
 
 app = FastAPI(title="Sistema de Matrículas - BD Oracle")
+
+# Configuración del Middleware CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # El asterisco permite que cualquier página (Vercel, Netlify, localhost) se conecte.
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos los métodos (GET, POST, PUT, DELETE)
+    allow_headers=["*"],
+)
+
+# ==========================================
+# CONEXIÓN A LA BASE DE DATOS
+# ==========================================
+def get_db_connection():
+    try:
+        # Ruta donde estará la carpeta wallet en el servidor
+        wallet_dir = os.path.join(os.path.dirname(__file__), "wallet")
+        
+        # Conexión usando wallet y las credenciales de Oracle Cloud
+        connection = oracledb.connect(
+            user="ADMIN",
+            password="TuContraseñaSeguraDeOracle",
+            dsn="edusysdb_high", # Verifica que este nombre coincida con tu tnsnames.ora
+            config_dir=wallet_dir,
+            wallet_location=wallet_dir,
+            wallet_password="ContraseñaDelWallet"
+        )
+        return connection
+    except Exception as e:
+        print(f"Error de conexión: {e}")
+        return None
 
 # 1. Montar la carpeta 'static' para mostrar tu frontend (index.html)
 app.mount("/web", StaticFiles(directory="static", html=True), name="static")
@@ -389,6 +422,92 @@ def eliminar_curso(id: int):
         if "ORA-02292" in e.args[0].message:
             raise HTTPException(status_code=400, detail="No se puede eliminar: Existen matrículas en este curso.")
         raise HTTPException(status_code=400, detail=e.args[0].message)
+    finally:
+        cursor.close()
+        conn.close()
+# ==========================================
+# BUSCADORES POR DNI (CORRECCIÓN DE FORMATO JSON)
+# ==========================================
+@app.get("/api/alumnos/buscar/{dni}")
+def buscar_alumno_por_dni(dni: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        parametro_busqueda = f"{dni}%"
+        cursor.execute("SELECT * FROM ALUMNOS WHERE dni LIKE :1", [parametro_busqueda])
+        
+        # 1. Fuerza a que todas las columnas de Oracle estén en minúsculas
+        columnas = [col[0].lower() for col in cursor.description]
+        filas = cursor.fetchall()
+        
+        # 2. Empareja las columnas con los datos creando una lista de diccionarios (JSON válido)
+        if filas:
+            return [dict(zip(columnas, fila)) for fila in filas]
+        return []
+    except oracledb.DatabaseError as e:
+        error, = e.args
+        raise HTTPException(status_code=500, detail=error.message)
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/profesores/buscar/{dni}")
+def buscar_profesor_por_dni(dni: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        parametro_busqueda = f"{dni}%"
+        cursor.execute("SELECT * FROM PROFESORES WHERE dni LIKE :1", [parametro_busqueda])
+        
+        columnas = [col[0].lower() for col in cursor.description]
+        filas = cursor.fetchall()
+        
+        if filas:
+            return [dict(zip(columnas, fila)) for fila in filas]
+        return []
+    except oracledb.DatabaseError as e:
+        error, = e.args
+        raise HTTPException(status_code=500, detail=error.message)
+    finally:
+        cursor.close()
+        conn.close()
+# ==========================================
+# AUTOCOMPLETADO (SUGERENCIAS EN TIEMPO REAL)
+# ==========================================
+@app.get("/api/alumnos/sugerencias/{parcial}")
+def sugerencias_alumnos(parcial: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Busca DNI que comiencen con lo que el usuario está escribiendo (Máximo 5 resultados)
+        cursor.execute("""
+            SELECT dni, nombres, apellidos 
+            FROM ALUMNOS 
+            WHERE dni LIKE :1 || '%' AND estado = 'A'
+            FETCH FIRST 5 ROWS ONLY
+        """, [parcial])
+        
+        # Devuelve el DNI y el nombre concatenado para mostrarlo bonito en la lista
+        resultados = [{"dni": row[0], "nombre": f"{row[1]} {row[2]}"} for row in cursor.fetchall()]
+        return resultados
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get("/api/profesores/sugerencias/{parcial}")
+def sugerencias_profesores(parcial: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT dni, nombres, apellidos 
+            FROM PROFESORES 
+            WHERE dni LIKE :1 || '%' AND estado = 'A'
+            FETCH FIRST 5 ROWS ONLY
+        """, [parcial])
+        
+        resultados = [{"dni": row[0], "nombre": f"{row[1]} {row[2]}"} for row in cursor.fetchall()]
+        return resultados
     finally:
         cursor.close()
         conn.close()

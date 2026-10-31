@@ -71,22 +71,44 @@
                 <div class="tab-pane fade" id="alumnos-pane" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div><h3 class="fw-bold">Alumnos</h3></div>
-                        <button class="btn btn-primary-custom" onclick="abrirModalAlumno()">Nuevo Alumno</button>
+                        <div class="d-flex gap-2">
+                            <!-- Buscador por DNI Alumnos -->
+                            <input type="text" id="txtBuscarAlumno" class="form-control bg-white shadow-sm" placeholder="Buscar DNI..." maxlength="12" list="listaSugerenciasAlumnos" oninput="cargarSugerenciasAlumno()">
+                            <datalist id="listaSugerenciasAlumnos"></datalist>
+                            <button class="btn btn-primary" onclick="buscarAlumno()"><i class="bi bi-search"></i></button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('txtBuscarAlumno').value=''; cargarAlumnos();" title="Limpiar"><i class="bi bi-eraser-fill"></i></button>
+                            <!-- Botón Nuevo -->
+                            <button class="btn btn-primary-custom ms-2" onclick="abrirModalAlumno()">Nuevo Alumno</button>
+                        </div>
                     </div>
-                    <div class="card card-custom p-3"><table class="table table-hover table-custom align-middle mb-0">
-                        <thead><tr><th>Nombre</th><th>DNI</th><th>Correo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead><tbody id="tablaEstudiantes"></tbody>
-                    </table></div>
+                    <div class="card card-custom p-3">
+                        <table class="table table-hover table-custom align-middle mb-0">
+                            <thead><tr><th>Nombre</th><th>DNI</th><th>Correo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+                            <tbody id="tablaEstudiantes"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- TAB PROFESORES -->
                 <div class="tab-pane fade" id="profesores-pane" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div><h3 class="fw-bold">Profesores</h3></div>
-                        <button class="btn btn-primary-custom" id="btn-nuevo-profesor" onclick="abrirModalProfesor()">Nuevo Profesor</button>
+                        <div class="d-flex gap-2">
+                            <!-- Buscador por DNI Profesores -->
+                            <input type="text" id="txtBuscarProfesor" class="form-control bg-white shadow-sm" placeholder="Buscar DNI..." maxlength="12" list="listaSugerenciasProfesores" oninput="cargarSugerenciasProfesor()">
+                            <datalist id="listaSugerenciasProfesores"></datalist>
+                            <button class="btn btn-primary" onclick="buscarProfesor()"><i class="bi bi-search"></i></button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('txtBuscarProfesor').value=''; cargarProfesores();" title="Limpiar"><i class="bi bi-eraser-fill"></i></button>
+                            <!-- Botón Nuevo -->
+                            <button class="btn btn-primary-custom ms-2" id="btn-nuevo-profesor" onclick="abrirModalProfesor()">Nuevo Profesor</button>
+                        </div>
                     </div>
-                    <div class="card card-custom p-3"><table class="table table-hover table-custom align-middle mb-0">
-                        <thead><tr><th>Nombre</th><th>DNI</th><th>Especialidad</th><th>Correo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead><tbody id="tablaProfesores"></tbody>
-                    </table></div>
+                    <div class="card card-custom p-3">
+                        <table class="table table-hover table-custom align-middle mb-0">
+                            <thead><tr><th>Nombre</th><th>DNI</th><th>Especialidad</th><th>Correo</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+                            <tbody id="tablaProfesores"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- TAB CURSOS -->
@@ -583,6 +605,99 @@
             // Forzamos la descarga del archivo en el navegador
             doc.save("Auditoria_EduSys.pdf");
         }
+    // =====================================
+    // FUNCIONES DE BÚSQUEDA (POR DNI)
+    // =====================================
+    function buscarAlumno() {
+        const dni = document.getElementById('txtBuscarAlumno').value.trim();
+        if (!dni) return cargarAlumnos(); // Si está vacío, carga todos
+        
+        fetch(`${API}/alumnos/buscar/${dni}`)
+            .then(r => r.json())
+            .then(a => {
+                if (a.length === 0) {
+                    document.getElementById('tablaEstudiantes').innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No se encontró ningún alumno con el DNI: ' + dni + '</td></tr>';
+                    return;
+                }
+                // Si lo encuentra, reutilizamos la misma plantilla visual
+                document.getElementById('tablaEstudiantes').innerHTML = a.map(x => `
+                    <tr>
+                        <td>${x.nombres} ${x.apellidos}</td><td>${x.dni}</td><td>${x.correo}</td>
+                        <td><span class="badge ${x.estado === 'A' ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill px-3 py-1">${x.estado === 'A' ? 'ACTIVO' : 'INACTIVO'}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light text-warning shadow-sm" onclick='editarAlumno(${JSON.stringify(x)})'><i class="bi bi-pencil-fill"></i></button>
+                            <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarAlumno(${x.id_alumno})"><i class="bi bi-trash-fill"></i></button>
+                        </td>
+                    </tr>`).join('');
+            });
+    }
+
+    function buscarProfesor() {
+        const dni = document.getElementById('txtBuscarProfesor').value.trim();
+        if (!dni) return cargarProfesores();
+        
+        fetch(`${API}/profesores/buscar/${dni}`)
+            .then(r => r.json())
+            .then(profesores => {
+                if (profesores.length === 0) {
+                    document.getElementById('tablaProfesores').innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No se encontró ningún profesor con el DNI: ' + dni + '</td></tr>';
+                    return;
+                }
+                document.getElementById('tablaProfesores').innerHTML = profesores.map(p => `
+                    <tr>
+                        <td>${p.nombres} ${p.apellidos}</td><td>${p.dni}</td><td>${p.especialidad || '-'}</td><td>${p.correo || '-'}</td>
+                        <td><span class="badge ${p.estado === 'A' ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill px-3 py-1">${p.estado === 'A' ? 'ACTIVO' : 'INACTIVO'}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light text-warning shadow-sm" onclick='editarProfesor(${JSON.stringify(p)})'><i class="bi bi-pencil-fill"></i></button>
+                            <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarProfesor(${p.id_profesor})"><i class="bi bi-trash-fill"></i></button>
+                        </td>
+                    </tr>`).join('');
+            });
+    }
+    // =====================================
+    // AUTOCOMPLETADO (ESTILO GOOGLE)
+    // =====================================
+    let timeoutSugerencias; // Variable para controlar el retraso (Debounce)
+
+    function cargarSugerenciasAlumno() {
+        clearTimeout(timeoutSugerencias); // Cancela la búsqueda anterior si sigue escribiendo
+        const parcial = document.getElementById('txtBuscarAlumno').value.trim();
+        const datalist = document.getElementById('listaSugerenciasAlumnos');
+
+        // Solo buscar si ha escrito 2 números o más
+        if (parcial.length < 1) {
+            datalist.innerHTML = '';
+            return;
+        }
+
+        timeoutSugerencias = setTimeout(() => {
+            fetch(`${API}/alumnos/sugerencias/${parcial}`)
+                .then(r => r.json())
+                .then(datos => {
+                    // Dibuja las opciones. Value es lo que se pondrá en el input, el texto es la ayuda visual
+                    datalist.innerHTML = datos.map(d => `<option value="${d.dni}">${d.nombre}</option>`).join('');
+                });
+        }, 300); // 300 milisegundos de espera
+    }
+
+    function cargarSugerenciasProfesor() {
+        clearTimeout(timeoutSugerencias);
+        const parcial = document.getElementById('txtBuscarProfesor').value.trim();
+        const datalist = document.getElementById('listaSugerenciasProfesores');
+
+        if (parcial.length < 1) {
+            datalist.innerHTML = '';
+            return;
+        }
+
+        timeoutSugerencias = setTimeout(() => {
+            fetch(`${API}/profesores/sugerencias/${parcial}`)
+                .then(r => r.json())
+                .then(datos => {
+                    datalist.innerHTML = datos.map(d => `<option value="${d.dni}">${d.nombre}</option>`).join('');
+                });
+        }, 300);
+    }
 </script>
 </body>
 </html>
